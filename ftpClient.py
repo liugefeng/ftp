@@ -302,9 +302,14 @@ def download_files_today():
 # usage2: python ftpClient.py 1 file1 ... filen
 # =============================================================================
 if __name__ == "__main__":
+    usage = '''
+upload  : python ftpClient.py 0 file1 ... filen
+download: python ftpClient.py 1
+    '''
+
     file_num = len(sys.argv[1:])
     if file_num <= 0:
-        print("Error: no valie files need to upload.")
+        print("Error: no valie files need to upload." + usage)
         exit()
 
     # for upload files
@@ -316,5 +321,4 @@ if __name__ == "__main__":
         download_files_today()
     else:
         print("invalid type: " + opt_type)
-
 
