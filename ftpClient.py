@@ -134,23 +134,30 @@ class ftpClient:
     # =====================================================================
     # 下载指定目录下的所有文件合目录
     # =====================================================================
-    def download(self, server_path, lst_download_files):
+    def download(self, server_path):
         server_path = server_path.strip()
 
         # 切换服务器目录
         if server_path:
             self.ftp.cwd(server_path)
 
+        lst_files = self.ftp.nlst()
         download_num = 0
-        for item in lst_download_files:
+        for item in lst_files:
             file_handle = open(item, "wb")
             download_num += 1
             try:
                 self.ftp.retrbinary("RETR " + item, file_handle.write, 1024)
+                origin_name = self.recovery_name(item)
+                if origin_name:
+                    os.rename(item, origin_name)
+                else:
+                    print("Error: error origin name for " + item)
+                    continue
             except(ftplib.error_perm):
                 print("Failed to download file " + item + "!")
                 continue
-        print("All " + download_num + " files downloaded form ftp!")
+        print("All " + str(download_num) + " files downloaded form ftp!")
 
     # =====================================================================
     # 在服务器上创建指定名称的目录
@@ -187,6 +194,13 @@ class ftpClient:
 
         return True
 
+    # =====================================================================
+    # 恢复文件名
+    # =====================================================================
+    def recovery_name(self, file_name):
+        match = re.search(r'\d+\-\d+\-\d+_(\S+)', file_name)
+        if match:
+            return match.group(1)
 
     # =====================================================================
     # 退出ftp登陆
@@ -219,23 +233,10 @@ def get_file_prefix():
 # 上传文件到ftp
 # =====================================================================
 def upload_files(lst_files):
-    print("upload files.")
-
-# =============================================================================
-# usage : 上传0、下载1
-# usage1: python ftpClient.py 0 file1 ... filen
-# usage2: python ftpClient.py 1 file1 ... filen
-# =============================================================================
-if __name__ == "__main__":
-    file_num = len(sys.argv[1:])
-    if file_num <= 0:
-        print("Error: no valie files need to upload.")
-        exit()
-
     # find valid files need to upload
     lst_upload_files = []
     lst_newest_files = []
-    for item in sys.argv[1:]:
+    for item in lst_files:
         # check whether file exists
         if not os.path.exists(item):
             print("Warning: file " + item + " not exists!")
@@ -263,4 +264,48 @@ if __name__ == "__main__":
     ftp_client.quit()
 
     print("upload finished.")
+    print("upload files.")
+
+# =====================================================================
+# 下载最新上传文件到当前目录
+# =====================================================================
+def download_files_today():
+    print("download files today")
+    download_path = get_dir_for_date()
+    print("downlaod path: " + download_path)
+
+    ftp_client = ftpClient(FTP_SERVER, FTP_USER, FTP_PASSWORD)
+    ftp_client.login()
+
+    if not ftp_client.is_directory(download_path):
+        print("Error: path " + download_path + " not exists!")
+        return
+
+    try:
+        ftp_client.download("/" + download_path)
+    except(ftplib.error_perm):
+        print("Failed to change ftp server path ftp " + server_path + "!")
+        return
+
+# =============================================================================
+# usage : 上传0、下载1
+# usage1: python ftpClient.py 0 file1 ... filen
+# usage2: python ftpClient.py 1 file1 ... filen
+# =============================================================================
+if __name__ == "__main__":
+    file_num = len(sys.argv[1:])
+    if file_num <= 0:
+        print("Error: no valie files need to upload.")
+        exit()
+
+    # for upload files
+    opt_type = int(sys.argv[1])
+    if opt_type == 0:
+        upload_files(sys.argv[2:])
+        exit()
+    elif opt_type == 1:
+        download_files_today()
+    else:
+        print("invalid type: " + opt_type)
+
 
