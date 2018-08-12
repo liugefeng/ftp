@@ -280,21 +280,23 @@ def upload_files(lst_files):
 # 下载最新上传文件到当前目录
 # =====================================================================
 def download_files_today():
-    print("download files today")
     download_path = get_dir_for_date()
 
     ftp_client = ftpClient(FTP_SERVER, FTP_USER, FTP_PASSWORD)
     ftp_client.login()
 
     if not ftp_client.is_directory(download_path):
-        print("Error: path " + download_path + " not exists!")
+        print("No files to download!")
+        ftp_client.quit()
         return
 
     try:
         ftp_client.download("/" + download_path)
     except(ftplib.error_perm):
         print("Failed to change ftp server path ftp " + server_path + "!")
-        return
+
+    ftp_client.quit()
+    return
 
 # =============================================================================
 # usage : 上传0、下载1
