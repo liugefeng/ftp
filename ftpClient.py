@@ -1,3 +1,5 @@
+# coding: UTF-8
+
 # =========================================================================
 # File Name  : ftpClient
 # Author     : 刘戈峰
@@ -148,6 +150,8 @@ class ftpClient:
             download_num += 1
             try:
                 self.ftp.retrbinary("RETR " + item, file_handle.write, 1024)
+                file_handle.close()
+
                 origin_name = self.recovery_name(item)
                 if origin_name:
                     os.rename(item, origin_name)
@@ -236,15 +240,21 @@ def upload_files(lst_files):
     # find valid files need to upload
     lst_upload_files = []
     lst_newest_files = []
+    map_upload_files = {}
+
     for item in lst_files:
         # check whether file exists
         if not os.path.exists(item):
             print("Warning: file " + item + " not exists!")
             continue
 
-        lst_upload_files.append(item)
-        cur_file = os.path.basename(item)
-        lst_newest_files.append(cur_file)
+        if not item in map_upload_files:
+            map_upload_files[item] = 1
+            lst_upload_files.append(item)
+            cur_file = os.path.basename(item)
+            lst_newest_files.append(cur_file)
+        else:
+            continue
 
     # no files need to upload
     if len(lst_upload_files) <= 0:
@@ -272,7 +282,6 @@ def upload_files(lst_files):
 def download_files_today():
     print("download files today")
     download_path = get_dir_for_date()
-    print("downlaod path: " + download_path)
 
     ftp_client = ftpClient(FTP_SERVER, FTP_USER, FTP_PASSWORD)
     ftp_client.login()
