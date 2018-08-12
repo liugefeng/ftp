@@ -7,9 +7,9 @@ from ftplib import FTP
 import time
 import platform
 
-FTP_SERVER = "192.168.0.6"
+FTP_SERVER = "192.168.125.1"
 FTP_USER = "liugefeng"
-FTP_PASSWORD = "liugefeng"
+FTP_PASSWORD = "Liu131003"
 PLATFORM = platform.system()
 
 # =========================================================================
@@ -151,3 +151,86 @@ class ftpClient:
             return False
 
         return True
+
+    # =====================================================================
+    # 重命名指定文件
+    # =====================================================================
+    def rename(self, upload_path, lst_newest_files):
+        file_prefix = getFilePrefix()
+
+        if upload_path:
+            try:
+                self.ftp.cwd("/" + upload_path)
+            except(ftplib.error_perm):
+                print("Error: failed to change ftp server path to " + upload_path + "!")
+                return False
+
+        for item in lst_newest_files:
+            self.ftp.rename(item, file_prefix + "_" + item)
+
+        return True
+
+
+    # =====================================================================
+    # 退出ftp登陆
+    # =====================================================================
+    def quit(self):
+        try:
+            self.ftp.quit()
+        except(ftplib.error_perm):
+            print("Error: failed to quit from ftp server " + self.ftp_server + "!")
+            return False
+
+        print("Quit from ftp server " + self.ftp_server + "!")
+        return True
+
+# =====================================================================
+# 根据当前日期生成文件要上传到服务器的目录名称(如：2018-08-11)
+# =====================================================================
+def getDirForToday():
+    time_str = time.strftime("%Y-%m-%d", time.localtime())
+    return time_str
+
+# =====================================================================
+# 根据当前提起生成服务器上文件的前缀名称
+# =====================================================================
+def getFilePrefix():
+    time_str = time.strftime("%H-%M-%S", time.localtime())
+    return time_str
+
+if __name__ == "__main__":
+    file_num = len(sys.argv[1:])
+    if file_num <= 0:
+        print("Error: no valie files need to upload.")
+        exit()
+
+    # find valid files need to upload
+    lst_upload_files = []
+    lst_newest_files = []
+    for item in sys.argv[1:]:
+        # check whether file exists
+        if not os.path.exists(item):
+            print("Warning: file " + item + " not exists!")
+            continue
+
+        lst_upload_files.append(item)
+        cur_file = os.path.basename(item)
+        lst_newest_files.append(cur_file)
+
+    # no files need to upload
+    if len(lst_upload_files) <= 0:
+        print("Error: no valid files need to upload!")
+        exit()
+
+    # upload files
+    print("upload files ...")
+    upload_path = getDirForToday()
+
+    ftp_client = ftpClient(FTP_SERVER, FTP_USER, FTP_PASSWORD)
+    ftp_client.login()
+
+    ftp_client.mkdir(upload_path)
+    ftp_client.upload(upload_path, lst_upload_files)
+    ftp_client.rename(upload_path, lst_newest_files)
+    ftp_client.quit()
+    print("upload finished.")
