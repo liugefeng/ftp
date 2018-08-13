@@ -144,9 +144,34 @@ class ftpClient:
         if server_path:
             self.ftp.cwd(server_path)
 
+        # 查找最后一次上传的文件
         lst_files = self.ftp.nlst()
-        download_num = 0
+        lst_newest_files = []
+        max_sum = 0
         for item in lst_files:
+            match = re.search(r'(\d+)\-(\d+)\-(\d+)_.*', item)
+            if not match:
+                continue
+            hour = int(match.group(1))
+            minute = int(match.group(2))
+            second = int(match.group(3))
+            sum = hour * 3600 + minute * 60 + second
+
+            if sum < max_sum:
+                continue
+            else:
+                if sum > max_sum:
+                    lst_newest_files.clear()
+                    max_sum = sum
+
+                lst_newest_files.append(item)
+
+        if len(lst_newest_files) == 0:
+            print("no newest upload files found!")
+            return
+
+        download_num = 0
+        for item in lst_newest_files:
             file_handle = open(item, "wb")
             download_num += 1
             try:
