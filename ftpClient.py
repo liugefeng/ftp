@@ -13,6 +13,7 @@
 #            :
 # History    : 2018-08-12 Liu Gefeng   功能基本完成
 #            : 2018-08-12 Liu Gefeng   解决下载完毕未退出ftp问题
+#            : 2018-08-12 Liu Gefeng   解决下载最后一次上传文件问题
 # =========================================================================
 
 import sys
@@ -133,6 +134,67 @@ class ftpClient:
 
         print(str(len(lst_files)) + " files uploaded onto ftp server " + self.ftp_server + "!")
         return True
+
+    # =====================================================================
+    # 下载最新上传文件到当前目录
+    # =====================================================================
+    def download_newest_files(self):
+        download_path = get_dir_for_date()
+
+        if not self.is_directory(download_path):
+            print("No files to download!")
+            return
+
+        self.ftp.cwd(download_path)
+        lst_files = self.ftp.nlst()
+        lst_newest_files = []
+        max_sum = 0
+
+        for item in lst_files:
+            match = re.search(r'(\d+)\-(\d+)\-(\d+)_.*', item)
+            if not match:
+                continue
+
+            hour = int(match.group(1))
+            minute = int(match.group(2))
+            second = int(match.group(3))
+            sum = hour * 3600 + minute * 60 + second
+
+            if sum < max_sum:
+                continue
+
+            if sum > max_sum:
+                # 兼容python2.7, 不适用clear
+                del lst_newest_files[:]
+                max_sum = sum
+
+            lst_newest_files.append(item)
+
+        if not lst_newest_files:
+            print("no newest upload files found!")
+            return
+
+        # 下载最后一次上传文件
+        for item in lst_newest_files:
+            try:
+                file_handle = open(item, 'wb')
+                self.ftp.retrbinary("RETR " + item, file_handle.write, 1024)
+                file_handle.close()
+
+                origin_name = self.recovery_name(item)
+                if origin_name:
+                    if os.path.exists(origin_name):
+                        os.remove(origin_name)
+
+                    os.rename(item, origin_name)
+                else:
+                    print("Error: error origin name for " + item)
+                    continue
+            except(ftplib.error_perm):
+                print("Failed to download file " + item + "!")
+                continue
+
+        return
 
     # =====================================================================
     # 下载指定目录下的所有文件合目录
@@ -302,27 +364,11 @@ def upload_files(lst_files):
     print("upload finished.")
     print("upload files.")
 
-# =====================================================================
-# 下载最新上传文件到当前目录
-# =====================================================================
-def download_files_today():
-    download_path = get_dir_for_date()
-
+def download_files():
     ftp_client = ftpClient(FTP_SERVER, FTP_USER, FTP_PASSWORD)
-    ftp_client.login()
-
-    if not ftp_client.is_directory(download_path):
-        print("No files to download!")
-        ftp_client.quit()
-        return
-
-    try:
-        ftp_client.download("/" + download_path)
-    except(ftplib.error_perm):
-        print("Failed to change ftp server path ftp " + server_path + "!")
-
-    ftp_client.quit()
-    return
+    ftp_client.login() 
+    ftp_client.download_newest_files();
+    ftp_client.quit() 
 
 # =============================================================================
 # usage : 上传0、下载1
@@ -346,7 +392,7 @@ download: python ftpClient.py 1
         upload_files(sys.argv[2:])
         exit()
     elif opt_type == 1:
-        download_files_today()
+        download_files()
     else:
         print("invalid type: " + opt_type)
 
