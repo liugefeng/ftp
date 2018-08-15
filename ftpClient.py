@@ -175,6 +175,7 @@ class ftpClient:
             return
 
         # 下载最后一次上传文件
+        download_num = 0
         for item in lst_newest_files:
             try:
                 file_handle = open(item, 'wb')
@@ -187,6 +188,7 @@ class ftpClient:
                         os.remove(origin_name)
 
                     os.rename(item, origin_name)
+                    download_num += 1
                 else:
                     print("Error: error origin name for " + item)
                     continue
@@ -194,6 +196,7 @@ class ftpClient:
                 print("Failed to download file " + item + "!")
                 continue
 
+        print("all " + str(len(lst_newest_files)) + " files " + str(download_num) + " download.")
         return
 
     # =====================================================================
