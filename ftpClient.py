@@ -14,6 +14,7 @@
 # History    : 2018-08-12 Liu Gefeng   功能基本完成
 #            : 2018-08-12 Liu Gefeng   解决下载完毕未退出ftp问题
 #            : 2018-08-12 Liu Gefeng   解决下载最后一次上传文件问题
+#            : 2018-08-15 Liu Gefeng   去除download函数
 # =========================================================================
 
 import sys
@@ -198,61 +199,6 @@ class ftpClient:
 
         print("all " + str(len(lst_newest_files)) + " files " + str(download_num) + " download.")
         return
-
-    # =====================================================================
-    # 下载指定目录下的所有文件合目录
-    # =====================================================================
-    def download(self, server_path):
-        server_path = server_path.strip()
-
-        # 切换服务器目录
-        if server_path:
-            self.ftp.cwd(server_path)
-
-        # 查找最后一次上传的文件
-        lst_files = self.ftp.nlst()
-        lst_newest_files = []
-        max_sum = 0
-        for item in lst_files:
-            match = re.search(r'(\d+)\-(\d+)\-(\d+)_.*', item)
-            if not match:
-                continue
-            hour = int(match.group(1))
-            minute = int(match.group(2))
-            second = int(match.group(3))
-            sum = hour * 3600 + minute * 60 + second
-
-            if sum < max_sum:
-                continue
-            else:
-                if sum > max_sum:
-                    lst_newest_files.clear()
-                    max_sum = sum
-
-                lst_newest_files.append(item)
-
-        if len(lst_newest_files) == 0:
-            print("no newest upload files found!")
-            return
-
-        download_num = 0
-        for item in lst_newest_files:
-            file_handle = open(item, "wb")
-            download_num += 1
-            try:
-                self.ftp.retrbinary("RETR " + item, file_handle.write, 1024)
-                file_handle.close()
-
-                origin_name = self.recovery_name(item)
-                if origin_name:
-                    os.rename(item, origin_name)
-                else:
-                    print("Error: error origin name for " + item)
-                    continue
-            except(ftplib.error_perm):
-                print("Failed to download file " + item + "!")
-                continue
-        print("All " + str(download_num) + " files downloaded form ftp!")
 
     # =====================================================================
     # 在服务器上创建指定名称的目录
