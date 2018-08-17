@@ -16,6 +16,7 @@
 #            : 2018-08-12 Liu Gefeng   解决下载最后一次上传文件问题
 #            : 2018-08-15 Liu Gefeng   去除download函数
 #            : 2018-08-17 Liu Gefeng   修改只能下载当天最新文件问题
+#            : 2018-08-17 Liu Gefeng   日期兼容python 2.7
 # =========================================================================
 
 import sys
@@ -279,7 +280,7 @@ class ftpClient:
                 if not match:
                     continue
 
-                cur_date = date(match.group(1), match.group(2), match.group(3))
+                cur_date = date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
                 if cur_date > max_date:
                     max_date = cur_date
 
