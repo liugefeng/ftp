@@ -15,6 +15,7 @@
 #            : 2018-08-12 Liu Gefeng   解决下载完毕未退出ftp问题
 #            : 2018-08-12 Liu Gefeng   解决下载最后一次上传文件问题
 #            : 2018-08-15 Liu Gefeng   去除download函数
+#            : 2018-08-17 Liu Gefeng   修改最新文件只能下载当天文件问题
 # =========================================================================
 
 import sys
@@ -25,6 +26,7 @@ import ftplib
 from ftplib import FTP
 import time
 import platform
+from datetime import date
 
 FTP_SERVER = "192.168.125.1"
 FTP_USER = "liugefeng"
@@ -140,9 +142,8 @@ class ftpClient:
     # 下载最新上传文件到当前目录
     # =====================================================================
     def download_newest_files(self):
-        download_path = get_dir_for_date()
-
-        if not self.is_directory(download_path):
+        download_path = self.get_newest_dir()
+        if not download_path:
             print("No files to download!")
             return
 
@@ -255,6 +256,38 @@ class ftpClient:
 
         print("Quit from ftp server " + self.ftp_server + "!")
         return True
+
+    # =====================================================================
+    # 获取根目录下最新的目录的名称
+    # =====================================================================
+    def get_newest_dir(self): 
+        newest_dir = ""
+
+        try:
+            lst_dirs_info = []
+
+            self.ftp.cwd("/")
+            self.ftp.retrlines('LIST', lst_dirs_info.append)
+            if not lst_dirs_info:
+                return ""
+
+            # drwxrwxrwx   1 user     group           0 Aug 14 06:49 2018-08-13
+            re_dir = re.compile(r'^.*\s+(\d+)\-(\d+)\-(\d+)\s*$')
+            max_date = date(1970, 1, 1)
+            for item in lst_dirs_info:
+                match = re_dir.search(item)
+                if not match:
+                    continue
+
+                cur_date = date(match.group(1), match.group(2), match.group(3))
+                if cur_date > max_date:
+                    max_date = cur_date
+
+            newest_dir = max_date.isoformat()
+        except():
+            pass
+
+        return newest_dir
 
 # =====================================================================
 # 根据当前日期生成文件要上传到服务器的目录名称(如：2018-08-11)
