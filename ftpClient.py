@@ -192,6 +192,7 @@ class ftpClient:
 
                     os.rename(item, origin_name)
                     download_num += 1
+                    print("file " + origin_name + " downloaded.")
                 else:
                     print("Error: error origin name for " + item)
                     continue
